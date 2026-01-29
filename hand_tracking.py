@@ -67,6 +67,53 @@ class HandDetector:
         
         return hands_info
 
+    def fingers_up(self, lmList, hand_type="Right"):
+        """
+        Returns a list of 5 booleans [Thumb, Index, Middle, Ring, Pinky]
+        True if finger is extended (up/out), False otherwise.
+        """
+        fingers = []
+        # Tip Ids
+        tip_ids = [4, 8, 12, 16, 20]
+
+        # Thumb
+        # For Right Hand: Thumb is to the Left of the hand (smaller X) when palm is facing camera?
+        # WAIT: MediaPipe coordinate system: Top-Left is (0,0).
+        # Right hand facing camera: Thumb is on the Left side of the hand (smaller X).
+        # IF Hand is flipped (Selfie view)? 
+        # Let's rely on Relative X.
+        # If Right Hand: Thumb Tip x < Thumb IP x (4 < 3) => Open/Extended (if palm faces camera)
+        
+        # NOTE: This depends heavily on orientation.
+        # Simple check: Is Thumb Tip further from MCP than IP is? (Distance based)
+        # Or Just use X check assuming standard upright usage.
+        
+        # Assumption: "Right Hand" usually means the hand detected as Right.
+        # If user holds right hand up, thumb is on the left side of the screen image?
+        # Let's blindly trust the implementation that usually works for "upright" hand:
+        if hand_type == "Right":
+            # Inverted logic as per user request: Tip > IP means extended
+            if lmList[tip_ids[0]][1] > lmList[tip_ids[0] - 1][1]:
+                fingers.append(1)
+            else:
+                fingers.append(0)
+        else: # Left Hand
+            if lmList[tip_ids[0]][1] > lmList[tip_ids[0] - 1][1]:
+                fingers.append(1)
+            else:
+                fingers.append(0)
+
+        # 4 Fingers
+        for id in range(1, 5):
+            # Check Y-axis (Tip < PIP) -> "Up"
+            # Note: Y increases downwards. So Tip < PIP means Tip is higher.
+            if lmList[tip_ids[id]][2] < lmList[tip_ids[id] - 2][2]:
+                fingers.append(1)
+            else:
+                fingers.append(0)
+
+        return fingers
+
 def main():
     pTime = 0
     cTime = 0
